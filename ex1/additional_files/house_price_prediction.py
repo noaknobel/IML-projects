@@ -1,7 +1,10 @@
 from typing import NoReturn
 
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+
+from ex1.additional_files.linear_regression import LinearRegression
 
 
 def preprocess_train(X: pd.DataFrame, y: pd.Series):
@@ -23,10 +26,15 @@ def preprocess_train(X: pd.DataFrame, y: pd.Series):
     print(len(X))
 
     # Remove rows with invalid values (like 0 bedrooms or bathrooms)
-    invalid_rows = (X["bedrooms"] == 0) | (X["bathrooms"] == 0)
+    invalid_rows = (X["bedrooms"] == 0) | (X["bathrooms"] == 0) | (np.isnan(y))
     X = X[~invalid_rows]
     y = y[~invalid_rows]
     print(len(X))
+    #
+    # invalid_rows = (y["price"] == 0)
+    # X = X[~invalid_rows]
+    # y = y[~invalid_rows]
+    # print(len(X))
 
     # Remove rows where year of renovation is before construction
     invalid_years = (X["yr_renovated"] != 0) & (X["yr_renovated"] < X["yr_built"])
@@ -72,8 +80,8 @@ def preprocess_train(X: pd.DataFrame, y: pd.Series):
     X["years_since_renovation"] = X.apply(
         lambda row: 0 if row["yr_renovated"] == 0 else 2025 - row["yr_renovated"], axis=1)
 
-    # drop yr_built and yr_renovated after using them
-    X.drop(columns=["yr_built", "yr_renovated"], inplace=True)
+    # drop years after using them
+    X.drop(columns=["yr_built", "yr_renovated", "sale_year"], inplace=True)
 
     # Drop irrelevant features
     X.drop(columns=["id", "date"], inplace=True)
@@ -155,6 +163,58 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         plt.close()
 
 
+def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
+                                  X_test: pd.DataFrame, y_test: pd.Series):
+    percentages = range(10, 101)  # 10% to 100%
+    mean_losses = []
+    std_losses = []
+
+    X_test_np, y_test_np = X_test.to_numpy(), y_test.to_numpy()
+
+    for p in percentages:
+        losses = []
+
+        for _ in range(10):
+            # Sample p% of the training set
+            sample = X_train.sample(frac=p / 100.0)
+            sample_y = y_train.loc[sample.index]
+
+            # Convert to numpy
+            sample_X_np = sample.to_numpy()
+            sample_y_np = sample_y.to_numpy()
+
+            # Train and evaluate
+            model = LinearRegression(include_intercept=True)
+            model.fit(sample_X_np, sample_y_np)
+            loss = model.loss(X_test_np, y_test_np)
+            losses.append(loss)
+
+        # Collect stats
+        mean_losses.append(np.mean(losses))
+        std_losses.append(np.std(losses))
+
+    # Plot with confidence interval
+    percentages = np.array(percentages)
+    mean_losses = np.array(mean_losses)
+    std_losses = np.array(std_losses)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(percentages, mean_losses, label="Mean Test Loss", color='blue')
+    plt.fill_between(percentages,
+                     mean_losses - 2 * std_losses,
+                     mean_losses + 2 * std_losses,
+                     color='blue', alpha=0.2, label="±2 Standard Deviations")
+
+    plt.xlabel("Percentage of Training Data Used")
+    plt.ylabel("Mean Squared Error on Test Set")
+    plt.title("Test MSE vs. Training Set Size")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("training_size_vs_loss.png")
+    plt.show()
+
+
 if __name__ == '__main__':
     df = pd.read_csv("house_prices.csv")
     X, y = df.drop("price", axis=1), df.price
@@ -180,6 +240,12 @@ if __name__ == '__main__':
     # Question 5 - preprocess the test data
     X_test = preprocess_test(X_test)
 
+    # print("Train columns:", X_train.columns.tolist())
+    # print("Number of train columns:", len(X_train.columns))
+    #
+    # print("Test columns:", X_test.columns.tolist())
+    # print("Number of test columns:", len(X_test.columns))
+
     # Question 6 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
     #   1) Sample p% of the overall training data
@@ -187,3 +253,4 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
+    evaluate_training_size_effect(X_train, y_train, X_test, y_test)

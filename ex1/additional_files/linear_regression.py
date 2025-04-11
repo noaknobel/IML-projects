@@ -102,5 +102,5 @@ class LinearRegression:
             Performance under MSE loss function
         """
         predicted = self.predict(X)
-        np.mean((y - predicted) ** 2)
+        return np.mean((y - predicted) ** 2)
 
