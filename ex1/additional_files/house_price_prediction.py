@@ -7,6 +7,20 @@ from matplotlib import pyplot as plt
 from ex1.additional_files.linear_regression import LinearRegression
 
 
+def split_train_test(df: pd.DataFrame, test_ratio: float = 0.25, random_state: int = 0):
+    """
+    Shuffle and split the dataset into train and test sets.
+    """
+    df = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
+    split_index = int((1 - test_ratio) * len(df))
+    train_df, test_df = df.iloc[:split_index], df.iloc[split_index:]
+
+    X_train, y_train = train_df.drop("price", axis=1), train_df.price
+    X_test, y_test = test_df.drop("price", axis=1), test_df.price
+
+    return X_train, y_train, X_test, y_test
+
+
 def preprocess_train(X: pd.DataFrame, y: pd.Series):
     """
     preprocess training data.
@@ -20,78 +34,60 @@ def preprocess_train(X: pd.DataFrame, y: pd.Series):
     -------
     A clean, preprocessed version of the data
     """
-    # Make a copy so we don't modify the original
-    X = X.copy()
-    y = y.copy()
-    print(len(X))
+    X, y = X.copy(), y.copy()
 
-    # Remove rows with invalid values (like 0 bedrooms or bathrooms)
-    invalid_rows = (X["bedrooms"] == 0) | (X["bathrooms"] == 0) | (np.isnan(y))
-    X = X[~invalid_rows]
-    y = y[~invalid_rows]
-    print(len(X))
-    #
-    # invalid_rows = (y["price"] == 0)
-    # X = X[~invalid_rows]
-    # y = y[~invalid_rows]
-    # print(len(X))
+    X, y = _remove_invalid_rows(X, y)
+    X, y = _remove_invalid_dates(X, y)
+    X, y = _filter_large_differences(X, y)
+    X = _create_features(X)
 
-    # Remove rows where year of renovation is before construction
-    invalid_years = (X["yr_renovated"] != 0) & (X["yr_renovated"] < X["yr_built"])
-    print(f"Removing {invalid_years.sum()} rows with renovation year before build year")
-    X = X[~invalid_years]
-    y = y[~invalid_years]
-
-    X["date"] = pd.to_datetime(X["date"], format="%Y%m%dT%H%M%S")
-    X["sale_year"] = X["date"].dt.year
-    invalid_sale_year = (X["sale_year"] < X["yr_built"]) | \
-                        ((X["yr_renovated"] != 0) & (X["sale_year"] < X["yr_renovated"]))
-    print(f"Removing {invalid_sale_year.sum()} rows where sale date is before build or renovation year")
-    X = X[~invalid_sale_year]
-    y = y[~invalid_sale_year]
-
-    invalid_dates = (X["sale_year"] > 2015) | (X["yr_renovated"] > 2015) | (X["yr_built"] > 2015)
-    print(f"Found {invalid_dates.sum()} rows with future dates")
-    X = X[~invalid_dates]
-    y = y[~invalid_dates]
-
-    invalid_sqft = X["sqft_living"] > X["sqft_lot"]
-    print(f"Found {invalid_sqft.sum()} rows where sqft_living > sqft_lot")
-    X = X[~invalid_sqft]
-    y = y[~invalid_sqft]
-
-    lot_diff = abs(X["sqft_lot"] - X["sqft_lot15"])
-    living_diff = abs(X["sqft_living"] - X["sqft_living15"])
-    lot_threshold = 0.9
-    living_threshold = 0.9
-
-    invalid_lot = lot_diff > lot_threshold * X["sqft_lot"]
-    invalid_living = living_diff > living_threshold * X["sqft_living"]
-
-    # Combine the conditions and filter the data
-    invalid_diff = invalid_lot | invalid_living
-    print(f"Found {invalid_diff.sum()} rows with large differences")
-    X = X[~invalid_diff]
-    y = y[~invalid_diff]
-
-    # Create new features that might help:
-    X["house_age"] = 2025 - X["yr_built"]
-    X["renovated"] = X["yr_renovated"].apply(lambda x: 0 if x == 0 else 1)
-    X["years_since_renovation"] = X.apply(
-        lambda row: 0 if row["yr_renovated"] == 0 else 2025 - row["yr_renovated"], axis=1)
-
-    # drop years after using them
-    X.drop(columns=["yr_built", "yr_renovated", "sale_year"], inplace=True)
-
-    # Drop irrelevant features
-    X.drop(columns=["id", "date"], inplace=True)
-
-    # Reset index after dropping
     X.reset_index(drop=True, inplace=True)
     y.reset_index(drop=True, inplace=True)
-
-    print(len(X))
     return X, y
+
+
+def _remove_invalid_rows(X, y):
+    invalid = (X["bedrooms"] == 0) | (X["bathrooms"] == 0) | (np.isnan(y))
+    X, y = X[~invalid], y[~invalid]
+    return X, y
+
+
+def _remove_invalid_dates(X, y):
+    # Remove inconsistent renovation years
+    invalid_renovation = (X["yr_renovated"] != 0) & (X["yr_renovated"] < X["yr_built"])
+    X, y = X[~invalid_renovation], y[~invalid_renovation]
+
+    # Parse date and extract sale year
+    X["date"] = pd.to_datetime(X["date"], format="%Y%m%dT%H%M%S")
+    X["sale_year"] = X["date"].dt.year
+
+    # Remove inconsistent sale years
+    invalid_sale = (X["sale_year"] < X["yr_built"]) | \
+                   ((X["yr_renovated"] != 0) & (X["sale_year"] < X["yr_renovated"]))
+    X, y = X[~invalid_sale], y[~invalid_sale]
+
+    # Remove future dates
+    future = (X["sale_year"] > 2015) | (X["yr_renovated"] > 2015) | (X["yr_built"] > 2015)
+    X.drop(columns=["sale_year"], inplace=True)
+    return X[~future], y[~future]
+
+
+def _filter_large_differences(X, y):
+    lot_diff = abs(X["sqft_lot"] - X["sqft_lot15"])
+    living_diff = abs(X["sqft_living"] - X["sqft_living15"])
+    threshold = 2.5
+
+    invalid = (lot_diff / threshold > X["sqft_lot"]) | (living_diff / threshold > X["sqft_living"])
+    return X[~invalid], y[~invalid]
+
+
+def _create_features(X):
+    X["house_age"] = 2025 - X["yr_built"]
+    X["renovated"] = X["yr_renovated"].apply(lambda x: 0 if x == 0 else 1)
+
+    # Drop used/irrelevant columns
+    X.drop(columns=["yr_built", "yr_renovated", "id", "date"], inplace=True)
+    return X
 
 
 def preprocess_test(X: pd.DataFrame):
@@ -106,19 +102,7 @@ def preprocess_test(X: pd.DataFrame):
     -------
     A preprocessed version of the test data that matches the coefficients format.
     """
-    # Create new features that might help:
-    X["house_age"] = 2025 - X["yr_built"]
-    X["renovated"] = X["yr_renovated"].apply(lambda x: 0 if x == 0 else 1)
-    X["years_since_renovation"] = X.apply(
-        lambda row: 0 if row["yr_renovated"] == 0 else 2025 - row["yr_renovated"], axis=1)
-
-    # drop yr_built and yr_renovated after using them
-    X.drop(columns=["yr_built", "yr_renovated"], inplace=True)
-
-    # Drop irrelevant features
-    X.drop(columns=["id", "date"], inplace=True)
-
-    # Reset index after dropping
+    X = _create_features(X)
     X.reset_index(drop=True, inplace=True)
     return X
 
@@ -141,14 +125,9 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         Path to folder in which plots are saved
     """
     for feature in X.columns:
-        # Calculate covariance between feature and response
         covariance = X[feature].cov(y)
-
-        # Calculate standard deviations of the feature and the response
         std_feature = X[feature].std()
         std_response = y.std()
-
-        # Calculate Pearson correlation coefficient
         pearson_corr = covariance / (std_feature * std_response)
 
         # Create scatter plot
@@ -157,15 +136,13 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         plt.title(f"{feature} vs. Price\nPearson Correlation: {pearson_corr:.3f}")
         plt.xlabel(feature)
         plt.ylabel("Price")
-
-        # Save the plot to the output path with the feature name in the filename
         plt.savefig(f"{output_path}/{feature}_vs_price.png")
         plt.close()
 
 
 def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
                                   X_test: pd.DataFrame, y_test: pd.Series):
-    percentages = range(10, 101)  # 10% to 100%
+    percentages = range(10, 101)
     mean_losses = []
     std_losses = []
 
@@ -173,27 +150,19 @@ def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
 
     for p in percentages:
         losses = []
-
         for _ in range(10):
-            # Sample p% of the training set
             sample = X_train.sample(frac=p / 100.0)
             sample_y = y_train.loc[sample.index]
-
-            # Convert to numpy
             sample_X_np = sample.to_numpy()
             sample_y_np = sample_y.to_numpy()
-
             # Train and evaluate
             model = LinearRegression(include_intercept=True)
             model.fit(sample_X_np, sample_y_np)
             loss = model.loss(X_test_np, y_test_np)
             losses.append(loss)
-
-        # Collect stats
         mean_losses.append(np.mean(losses))
         std_losses.append(np.std(losses))
 
-    # Plot with confidence interval
     percentages = np.array(percentages)
     mean_losses = np.array(mean_losses)
     std_losses = np.array(std_losses)
@@ -204,7 +173,6 @@ def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
                      mean_losses - 2 * std_losses,
                      mean_losses + 2 * std_losses,
                      color='blue', alpha=0.2, label="±2 Standard Deviations")
-
     plt.xlabel("Percentage of Training Data Used")
     plt.ylabel("Mean Squared Error on Test Set")
     plt.title("Test MSE vs. Training Set Size")
@@ -217,19 +185,9 @@ def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
 
 if __name__ == '__main__':
     df = pd.read_csv("house_prices.csv")
-    X, y = df.drop("price", axis=1), df.price
 
     # Question 2 - split train test
-    df = df.sample(frac=1, random_state=0).reset_index(drop=True)
-
-    # Split into train/test sets (75/25)
-    split_index = int(0.75 * len(df))
-    train_df = df.iloc[:split_index]
-    test_df = df.iloc[split_index:]
-
-    # Separate features and target
-    X_train, y_train = train_df.drop("price", axis=1), train_df.price
-    X_test, y_test = test_df.drop("price", axis=1), test_df.price
+    X_train, y_train, X_test, y_test = split_train_test(df)
 
     # Question 3 - preprocessing of housing prices train dataset
     X_train, y_train = preprocess_train(X_train, y_train)
@@ -239,12 +197,6 @@ if __name__ == '__main__':
 
     # Question 5 - preprocess the test data
     X_test = preprocess_test(X_test)
-
-    # print("Train columns:", X_train.columns.tolist())
-    # print("Number of train columns:", len(X_train.columns))
-    #
-    # print("Test columns:", X_test.columns.tolist())
-    # print("Number of test columns:", len(X_test.columns))
 
     # Question 6 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
