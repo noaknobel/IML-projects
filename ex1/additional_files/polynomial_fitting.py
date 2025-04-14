@@ -7,6 +7,7 @@ class PolynomialFitting(LinearRegression):
     """
     Polynomial Fitting using Least Squares estimation
     """
+
     def __init__(self, k: int):
         """
         Instantiate a polynomial fitting estimator
@@ -16,7 +17,8 @@ class PolynomialFitting(LinearRegression):
         k : int
             Degree of polynomial to fit
         """
-        pass
+        super().__init__(include_intercept=False)
+        self.k_ = k
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
@@ -30,7 +32,7 @@ class PolynomialFitting(LinearRegression):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        pass
+        super().fit(self.__transform(X), y)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -46,7 +48,7 @@ class PolynomialFitting(LinearRegression):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        pass
+        return super().predict(self.__transform(X))
 
     def loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -65,7 +67,7 @@ class PolynomialFitting(LinearRegression):
         loss : float
             Performance under MSE loss function
         """
-        pass
+        return super().loss(self.__transform(X), y)
 
     def __transform(self, X: np.ndarray) -> np.ndarray:
         """
@@ -80,4 +82,4 @@ class PolynomialFitting(LinearRegression):
         transformed: ndarray of shape (n_samples, k+1)
             Vandermonde matrix of given samples up to degree k
         """
-        pass
+        return np.vander(X, N=self.k_ + 1, increasing=True)
