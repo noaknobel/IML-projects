@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 from matplotlib import pyplot as plt
 
-from ex1.additional_files.polynomial_fitting import PolynomialFitting
+from polynomial_fitting import PolynomialFitting
 
 
 def load_data(filename: str) -> pd.DataFrame:
@@ -22,7 +22,7 @@ def load_data(filename: str) -> pd.DataFrame:
 
     # Drop invalid rows
     df.dropna(inplace=True)
-    df = df[df["Temp"] > -72.77777]
+    df = df[round(df["Temp"], 2) != -72.78]
 
     # Add DayOfYear column based on parsed dates
     df["DayOfYear"] = df["Date"].dt.dayofyear
@@ -72,10 +72,9 @@ def explore_per_country(df: pd.DataFrame):
     fig.show()
 
 
-def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 5):
+def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 0):
     """
     Evaluate polynomial fitting for Israel data using polynomial degrees 1 to 10.
-    Prints and plots test error for each degree.
     """
     # Filter only Israel data and shuffle
     israel_df = df[df["Country"] == "Israel"].copy()
@@ -178,4 +177,4 @@ if __name__ == '__main__':
     k = evaluate_polynomial_degrees(df)
 
     # Question 6 - Evaluating fitted model on different countries
-    evaluate_model_on_other_countries(df, k)
+    # evaluate_model_on_other_countries(df, k)

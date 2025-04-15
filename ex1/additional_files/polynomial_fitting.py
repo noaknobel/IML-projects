@@ -1,7 +1,7 @@
 from typing import NoReturn
 import numpy as np
 
-from ex1.additional_files.linear_regression import LinearRegression
+from linear_regression import LinearRegression
 
 
 class PolynomialFitting(LinearRegression):
@@ -83,4 +83,4 @@ class PolynomialFitting(LinearRegression):
         transformed: ndarray of shape (n_samples, k+1)
             Vandermonde matrix of given samples up to degree k
         """
-        return np.vander(X, N=self.k_ + 1, increasing=True)
+        return np.vander(X.flatten(), N=self.k_ + 1, increasing=True)
