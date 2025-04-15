@@ -1,6 +1,7 @@
 from typing import NoReturn
-from linear_regression import LinearRegression
 import numpy as np
+
+from ex1.additional_files.linear_regression import LinearRegression
 
 
 class PolynomialFitting(LinearRegression):
@@ -67,7 +68,7 @@ class PolynomialFitting(LinearRegression):
         loss : float
             Performance under MSE loss function
         """
-        return super().loss(self.__transform(X), y)
+        return super().loss(X, y)  # self.predict does the transform
 
     def __transform(self, X: np.ndarray) -> np.ndarray:
         """
