@@ -56,9 +56,7 @@ class LinearRegression:
             ones = np.ones((X.shape[0], 1))
             X = np.hstack((ones, X))
 
-        # compute coefs_ = (X^T X)^(-1) X^T y
-        xtx_inv = np.linalg.pinv(X.T @ X)  # Use pseudo-inverse for stability
-        self.coefs_ = xtx_inv @ X.T @ y
+        self.coefs_ = np.linalg.pinv(X) @ y
         self.fitted_ = True
 
     def predict(self, X: np.ndarray) -> np.ndarray:

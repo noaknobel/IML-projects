@@ -91,10 +91,6 @@ def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 0):
     X_test = test_df["DayOfYear"].to_numpy()
     y_test = test_df["Temp"].to_numpy()
 
-    x_min, x_max = X_train.min(), X_train.max()
-    X_train = (X_train - x_min) / (x_max - x_min)
-    X_test = (X_test - x_min) / (x_max - x_min)
-
     test_errors = []
 
     for k in range(1, 11):
@@ -168,13 +164,13 @@ if __name__ == '__main__':
     df = load_data("city_temperature.csv")
 
     # Question 3 - Exploring data for specific country
-    # explore_israel(df)
+    explore_israel(df)
 
     # Question 4 - Exploring differences between countries
-    # explore_per_country(df)
+    explore_per_country(df)
 
     # Question 5 - Fitting model for different values of `k`
     k = evaluate_polynomial_degrees(df)
 
     # Question 6 - Evaluating fitted model on different countries
-    # evaluate_model_on_other_countries(df, k)
+    evaluate_model_on_other_countries(df, k)
