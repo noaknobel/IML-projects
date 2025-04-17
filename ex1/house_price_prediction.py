@@ -144,7 +144,8 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
 
 
 def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
-                                  X_test: pd.DataFrame, y_test: pd.Series):
+                                  X_test: pd.DataFrame, y_test: pd.Series,
+                                  output_path: str = "."):
     percentages = range(10, 101)
     mean_losses = []
     std_losses = []
@@ -182,7 +183,9 @@ def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("training_size_vs_loss.png")
+    output_file = os.path.join(output_path, "training_size_vs_loss.png")
+    os.makedirs(output_path, exist_ok=True)
+    plt.savefig(output_file)
 
 
 if __name__ == '__main__':
@@ -207,4 +210,4 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
-    evaluate_training_size_effect(X_train, y_train, X_test, y_test)
+    evaluate_training_size_effect(X_train, y_train, X_test, y_test, output_path="feature_plots")

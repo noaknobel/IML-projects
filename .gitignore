@@ -1,8 +1,6 @@
 .idea
 .venv
-*/*/__pycache__
-*/*/myenv
-*/*/myenv_312
+*/__pycache__
 *.docx
 *.pdf
 *.png
