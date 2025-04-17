@@ -1,10 +1,11 @@
+import os
 from typing import NoReturn
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from ex1.additional_files.linear_regression import LinearRegression
+from linear_regression import LinearRegression
 
 
 def split_train_test(df: pd.DataFrame, test_ratio: float = 0.25, random_state: int = 0):
@@ -136,7 +137,9 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         plt.title(f"{feature} vs. Price\nPearson Correlation: {pearson_corr:.3f}")
         plt.xlabel(feature)
         plt.ylabel("Price")
-        plt.savefig(f"{output_path}/{feature}_vs_price.png")
+        output_file = os.path.join(output_path, f"{feature}_vs_price.png")
+        os.makedirs(output_path, exist_ok=True)
+        plt.savefig(output_file)
         plt.close()
 
 
@@ -180,7 +183,6 @@ def evaluate_training_size_effect(X_train: pd.DataFrame, y_train: pd.Series,
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("training_size_vs_loss.png")
-    plt.show()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,9 @@
+.idea
+.venv
+*/*/__pycache__
+*/*/myenv
+*/*/myenv_312
+*.docx
+*.pdf
+*.png
+*.zip

@@ -97,7 +97,9 @@ def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 0):
         model = PolynomialFitting(k)
         model.fit(X_train, y_train)
         loss = model.loss(X_test, y_test)
-        test_errors.append(round(loss, 2))
+        rounded_loss = round(loss, 2)
+        test_errors.append(rounded_loss)
+        print(f"Test error for polynomial degree {k}: {rounded_loss}")
 
     # Bar plot of test errors
     plt.bar(range(1, 11), test_errors, color="skyblue")
