@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import plotly.express as px
 from matplotlib import pyplot as plt
@@ -29,7 +31,7 @@ def load_data(filename: str) -> pd.DataFrame:
     return df
 
 
-def explore_israel(df: pd.DataFrame):
+def explore_israel(df: pd.DataFrame, output_path: str = "."):
     # Filter for Israel only
     israel_df = df[df["Country"] == "Israel"].copy()
     # Plot 1
@@ -41,7 +43,10 @@ def explore_israel(df: pd.DataFrame):
     plt.ylabel("Temperature (°C)")
     plt.legend(title="Year", bbox_to_anchor=(1.05, 1))
     plt.tight_layout()
-    plt.show()
+    output_file = os.path.join(output_path, "temperature_by_day.png")
+    os.makedirs(output_path, exist_ok=True)
+    plt.savefig(output_file)
+    plt.close()
 
     # Plot 2
     monthly_std = israel_df.groupby("Month")["Temp"].std()
@@ -51,10 +56,13 @@ def explore_israel(df: pd.DataFrame):
     plt.ylabel("Temperature Std Dev (°C)")
     plt.xticks(rotation=0)
     plt.tight_layout()
-    plt.show()
+    output_file = os.path.join(output_path, "temperature_by_month.png")
+    os.makedirs(output_path, exist_ok=True)
+    plt.savefig(output_file)
+    plt.close()
 
 
-def explore_per_country(df: pd.DataFrame):
+def explore_per_country(df: pd.DataFrame, output_path: str = "."):
     grouped = df.groupby(["Country", "Month"])["Temp"].agg(["mean", "std"]).reset_index()
     grouped.rename(columns={"mean": "AverageTemp", "std": "TempStd"}, inplace=True)
 
@@ -69,10 +77,12 @@ def explore_per_country(df: pd.DataFrame):
         title="Average Monthly Temperature with Standard Deviation per Country"
     )
     fig.update_layout(xaxis_title="Month", yaxis_title="Temperature (°C)")
-    fig.show()
+    output_file = os.path.join(output_path, "monthly_temperature_per_country.html")
+    os.makedirs(output_path, exist_ok=True)
+    fig.write_html(output_file)
 
 
-def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 0):
+def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 0, output_path: str = "."):
     """
     Evaluate polynomial fitting for Israel data using polynomial degrees 1 to 10.
     """
@@ -109,14 +119,17 @@ def evaluate_polynomial_degrees(df: pd.DataFrame, random_state: int = 0):
     plt.xticks(range(1, 11))
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
-    plt.show()
+    output_file = os.path.join(output_path, "test_error_vs_polynomial_degree.png")
+    os.makedirs(output_path, exist_ok=True)
+    plt.savefig(output_file)
+    plt.close()
 
     # Report best k
     min_loss = min(test_errors)
     return next(k for k, loss in enumerate(test_errors, 1) if loss == min_loss)
 
 
-def evaluate_model_on_other_countries(df: pd.DataFrame, best_k: int):
+def evaluate_model_on_other_countries(df: pd.DataFrame, best_k: int, output_path: str = "."):
     """
     Fit a polynomial model on all Israel data using the chosen degree,
     and evaluate its test loss on each of the other countries.
@@ -158,7 +171,10 @@ def evaluate_model_on_other_countries(df: pd.DataFrame, best_k: int):
     plt.ylabel("MSE Loss")
     plt.xlabel("Country")
     plt.tight_layout()
-    plt.show()
+    output_file = os.path.join(output_path, "test_error_on_other_country.png")
+    os.makedirs(output_path, exist_ok=True)
+    plt.savefig(output_file)
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -166,13 +182,13 @@ if __name__ == '__main__':
     df = load_data("city_temperature.csv")
 
     # Question 3 - Exploring data for specific country
-    explore_israel(df)
+    explore_israel(df, output_path="city_temperature_plots")
 
     # Question 4 - Exploring differences between countries
-    explore_per_country(df)
+    explore_per_country(df, output_path="city_temperature_plots")
 
     # Question 5 - Fitting model for different values of `k`
-    k = evaluate_polynomial_degrees(df)
+    k = evaluate_polynomial_degrees(df, output_path="city_temperature_plots")
 
     # Question 6 - Evaluating fitted model on different countries
-    evaluate_model_on_other_countries(df, k)
+    evaluate_model_on_other_countries(df, k, output_path="city_temperature_plots")

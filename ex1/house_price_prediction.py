@@ -198,7 +198,7 @@ if __name__ == '__main__':
     X_train, y_train = preprocess_train(X_train, y_train)
 
     # Question 4 - Feature evaluation of train dataset with respect to response
-    feature_evaluation(X_train, y_train, output_path="feature_plots")
+    feature_evaluation(X_train, y_train, output_path="house_price_plots")
 
     # Question 5 - preprocess the test data
     X_test = preprocess_test(X_test)
@@ -210,4 +210,4 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
-    evaluate_training_size_effect(X_train, y_train, X_test, y_test, output_path="feature_plots")
+    evaluate_training_size_effect(X_train, y_train, X_test, y_test, output_path="house_price_plots")
