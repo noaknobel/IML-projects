@@ -29,21 +29,10 @@ def generate_data(m):
     return X, y
 
 
-def ensure_two_classes_in_split(X, y, test_size=0.3):
-    while True:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-        if len(np.unique(y_train)) > 1:  # Check if both classes are in the training set
-            break
-    return X_train, X_test, y_train, y_test
-
-
-# Soft-SVM classifier function
-def run_svm(X_train, y_train, X_test, y_test, C_value):
+def run_svm(X, y, C_value):
     model = SVC(C=C_value, kernel='linear')
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    return model, accuracy
+    model.fit(X, y)  # Train on the entire dataset
+    return model
 
 
 def plot_decision_boundary_lines(X, y, model, ax, title):
@@ -94,7 +83,7 @@ def generate_data_2():
 
 
 def get_classifiers():
-    svm = SVC(C=1/5, kernel='linear')  # SVM with λ = 5
+    svm = SVC(C=1 / 5, kernel='linear')  # SVM with λ = 5
     dtree = DecisionTreeClassifier(max_depth=7)  # Decision Tree with depth 7
     knn = KNeighborsClassifier(n_neighbors=5)  # KNN with k = 5
     return svm, dtree, knn
@@ -133,10 +122,9 @@ def pratical_1_runner(save_path=None):
 
     for m in m_values:
         X, y = generate_data(m)
-        X_train, X_test, y_train, y_test = ensure_two_classes_in_split(X, y)
         for C in C_values:
-            model, accuracy = run_svm(X_train, y_train, X_test, y_test, C)
-            title = f"m={m}, C={C}, Accuracy={accuracy:.2f}"
+            model = run_svm(X, y, C)  # Train on all points
+            title = f"m={m}, C={C}"
             file_name = f"svm_m{m}_C{C}.png"
             file_path = os.path.join(save_path, file_name) if save_path else None
             fig, ax = plt.subplots(figsize=(6, 6))
@@ -160,7 +148,7 @@ def practical_2_runner(save_path=None):
             title = f'{name} (Accuracy: {accuracy:.2f})'
             file_name = f'{dataset_name}_{name}_boundary.png'
             file_path = os.path.join(save_path, file_name) if save_path else None
-            plot_decision_boundary(X_train, y_train, clf, title, file_path)
+            plot_decision_boundary(np.vstack([X_train, X_test]), np.hstack([y_train, y_test]), clf, title, file_path)
 
 
 if __name__ == "__main__":
