@@ -94,7 +94,7 @@ def generate_data_2():
 
 
 def get_classifiers():
-    svm = SVC(C=5, kernel='linear')  # SVM with λ = 5
+    svm = SVC(C=1/5, kernel='linear')  # SVM with λ = 5
     dtree = DecisionTreeClassifier(max_depth=7)  # Decision Tree with depth 7
     knn = KNeighborsClassifier(n_neighbors=5)  # KNN with k = 5
     return svm, dtree, knn
@@ -108,7 +108,7 @@ def plot_decision_boundary(X, y, model, title, path=None):
     Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
     plt.contourf(xx, yy, Z, alpha=0.8)
-    plt.scatter(X[:, 0], X[:, 1], c=y, edgecolors='k', marker='o', cmap=plt.cm.RdBu)
+    plt.scatter(X[:, 0], X[:, 1], c=y, marker='o', cmap=plt.cm.RdBu)
     plt.title(title)
     save_plot(path)
 
