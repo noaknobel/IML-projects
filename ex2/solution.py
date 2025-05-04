@@ -56,10 +56,10 @@ def plot_decision_boundary_lines(X, y, model, ax, title):
 
 def generate_data_2():
     # Moons dataset
-    X_moons, y_moons = make_moons(n_samples=200, noise=0.2, random_state=42)
+    X_moons, y_moons = make_moons(n_samples=200, noise=0.2)
 
     # Circles dataset
-    X_circles, y_circles = make_circles(n_samples=200, noise=0.1, factor=0.5, random_state=42)
+    X_circles, y_circles = make_circles(n_samples=200, noise=0.1, factor=0.5)
 
     # Two Gaussians dataset
     mean1 = [-1, -1]
@@ -96,8 +96,8 @@ def plot_decision_boundary(X, y, model, title, path=None):
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
     Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
-    plt.contourf(xx, yy, Z, alpha=0.8)
-    plt.scatter(X[:, 0], X[:, 1], c=y, marker='o', cmap=plt.cm.RdBu)
+    plt.contourf(xx, yy, Z, alpha=0.2, cmap=plt.cm.spring)
+    plt.scatter(X[:, 0], X[:, 1], c=y, marker='o', cmap=plt.cm.spring, edgecolors='k')
     plt.title(title)
     save_plot(path)
 
@@ -153,5 +153,5 @@ def practical_2_runner(save_path=None):
 
 if __name__ == "__main__":
     path = None
-    pratical_1_runner(save_path="first_part_plots")
+    # pratical_1_runner(save_path="first_part_plots")
     practical_2_runner(save_path="second_part_plots")
