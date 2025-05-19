@@ -40,7 +40,7 @@ class AdaBoost(BaseEstimator):
         super().__init__()
         self.wl_ = wl
         self.iterations_ = iterations
-        self.models_, self.weights_, self.D_ = None, None, None
+        self.models_, self.weights_, self.D_ = [], [], []
 
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
@@ -54,7 +54,37 @@ class AdaBoost(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        n_samples = X.shape[0]
+        # initialize uniform weight distribution
+        D = np.ones(n_samples) / n_samples
+        self.D_.append(D.copy())
+
+        for t in range(self.iterations_):
+            # draw a bootstrap sample of indices according to D
+            idxs = np.random.choice(n_samples, size=n_samples, replace=True, p=D)
+            X_t, y_t = X[idxs], y[idxs]
+
+            # 1) train weak learner on weighted data
+            stump = self.wl_()
+            stump.fit(X_t, y_t)
+            y_pred = stump.predict(X)
+
+            # 2) compute weighted error
+            err = np.sum(D * (y_pred != y))
+            # guard against division by zero or err=0
+            err = np.clip(err, 1e-10, 1 - 1e-10)
+
+            # 3) compute model weight
+            w_t = 0.5 * np.log((1 - err) / err)
+
+            # 4) update D for next iteration
+            D = D * np.exp(-w_t * y * y_pred)
+            D /= D.sum()
+
+            # 5) store results
+            self.models_.append(stump)
+            self.weights_.append(w_t)
+            self.D_.append(D.copy())
 
     def _predict(self, X):
         """
@@ -70,7 +100,7 @@ class AdaBoost(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

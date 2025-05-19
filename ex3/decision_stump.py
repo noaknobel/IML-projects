@@ -21,6 +21,7 @@ class DecisionStump(BaseEstimator):
     self.sign_: int
         The label to predict for samples where the value of the j'th feature is about the threshold
     """
+
     def __init__(self) -> DecisionStump:
         """
         Instantiate a Decision stump classifier
@@ -40,7 +41,14 @@ class DecisionStump(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        n_samples, n_features = X.shape
+        best_err = np.inf
+        # try all features and both sign assignments
+        for j, sign in product(range(n_features), (-1, 1)):
+            thr, err = self._find_threshold(X[:, j], y, sign)
+            if err < best_err:
+                best_err = err
+                self.threshold_, self.j_, self.sign_ = thr, j, sign
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -64,7 +72,8 @@ class DecisionStump(BaseEstimator):
         Feature values strictly below threshold are predicted as `-sign` whereas values which equal
         to or above the threshold are predicted as `sign`
         """
-        raise NotImplementedError()
+        feature_vals = X[:, self.j_]
+        return np.where(feature_vals >= self.threshold_, self.sign_, -self.sign_)
 
     def _find_threshold(self, values: np.ndarray, labels: np.ndarray, sign: int) -> Tuple[float, float]:
         """
@@ -96,23 +105,42 @@ class DecisionStump(BaseEstimator):
         For every tested threshold, values strictly below threshold are predicted as `-sign` whereas values
         which equal to or above the threshold are predicted as `sign`
         """
-        raise NotImplementedError()
+        # sort values and corresponding labels
+        sort_idx = np.argsort(values)
+        sorted_vals = values[sort_idx]
+        # sorted_labels = labels[sort_idx]
 
-    def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
-        """
-        Evaluate performance under misclassification loss function
+        # candidate thresholds: midpoints between consecutive unique values,
+        # plus one below the minimum
+        unique_vals = np.unique(sorted_vals)
+        candidates = np.concatenate(([unique_vals[0] - 1], (unique_vals[:-1] + unique_vals[1:]) / 2))
 
-        Parameters
-        ----------
-        X : ndarray of shape (n_samples, n_features)
-            Test samples
+        best_thr, best_err = None, np.inf
+        for thr in candidates:
+            pred = np.where(values >= thr, sign, -sign)
+            err = misclassification_error(labels, pred, normalize=True)
+            if err < best_err:
+                best_thr, best_err = thr, err
 
-        y : ndarray of shape (n_samples, )
-            True labels of test samples
+        return best_thr, best_err
 
-        Returns
-        -------
-        loss : float
-            Performance under missclassification loss function
-        """
-        raise NotImplementedError()
+
+def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
+    """
+    Evaluate performance under misclassification loss function
+
+    Parameters
+    ----------
+    X : ndarray of shape (n_samples, n_features)
+        Test samples
+
+    y : ndarray of shape (n_samples, )
+        True labels of test samples
+
+    Returns
+    -------
+    loss : float
+        Performance under missclassification loss function
+    """
+    y_pred = self.predict(X)
+    return misclassification_error(y, y_pred, normalize=True)
