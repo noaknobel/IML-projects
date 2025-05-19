@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -153,5 +152,5 @@ def practical_2_runner(save_path=None):
 
 if __name__ == "__main__":
     path = None
-    # pratical_1_runner(save_path="first_part_plots")
+    pratical_1_runner(save_path="first_part_plots")
     practical_2_runner(save_path="second_part_plots")
