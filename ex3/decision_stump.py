@@ -125,22 +125,22 @@ class DecisionStump(BaseEstimator):
         return best_thr, best_err
 
 
-def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
-    """
-    Evaluate performance under misclassification loss function
+    def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
+        """
+        Evaluate performance under misclassification loss function
 
-    Parameters
-    ----------
-    X : ndarray of shape (n_samples, n_features)
-        Test samples
+        Parameters
+        ----------
+        X : ndarray of shape (n_samples, n_features)
+            Test samples
 
-    y : ndarray of shape (n_samples, )
-        True labels of test samples
+        y : ndarray of shape (n_samples, )
+            True labels of test samples
 
-    Returns
-    -------
-    loss : float
-        Performance under missclassification loss function
-    """
-    y_pred = self.predict(X)
-    return misclassification_error(y, y_pred, normalize=True)
+        Returns
+        -------
+        loss : float
+            Performance under missclassification loss function
+        """
+        y_pred = self.predict(X)
+        return misclassification_error(y, y_pred, normalize=True)
