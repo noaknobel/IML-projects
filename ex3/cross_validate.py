@@ -1,3 +1,4 @@
+import copy
 from typing import Tuple
 import numpy as np
 from base_estimator import BaseEstimator
@@ -30,7 +31,6 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray, cv: i
         Average validation score over folds
     """
     n_samples = X.shape[0]
-    # split indices into cv folds
     indices = np.arange(n_samples)
     folds = np.array_split(indices, cv)
 
