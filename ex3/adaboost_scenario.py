@@ -5,7 +5,6 @@ import numpy as np
 from typing import Tuple
 
 from matplotlib import pyplot as plt
-import plotly.express as px
 
 from utils import *
 import plotly.graph_objects as go
@@ -52,25 +51,6 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
     n_learners = 250
     ab_model = AdaBoost(DecisionStump, iterations=n_learners)
     ab_model.fit(train_X, train_y)
-
-    # cache_file = f"ab_cache_noise{noise}_train{train_size}_test{test_size}.pkl"
-    #
-    # if os.path.exists(cache_file):
-    #     # Load data *and* model in one go
-    #     with open(cache_file, "rb") as f:
-    #         train_X, train_y, test_X, test_y, ab_model = pickle.load(f)
-    # else:
-    #     # 1) generate data
-    #     train_X, train_y = generate_data(train_size, noise)
-    #     test_X, test_y = generate_data(test_size, noise)
-    #
-    #     # 2) train model
-    #     ab_model = AdaBoost(DecisionStump, iterations=n_learners)
-    #     ab_model.fit(train_X, train_y)
-    #
-    #     # 3) cache everything
-    #     with open(cache_file, "wb") as f:
-    #         pickle.dump((train_X, train_y, test_X, test_y, ab_model), f)
 
     # Question 1: Train- and test errors of AdaBoost in noiseless case
     ts = np.arange(1, n_learners + 1)
