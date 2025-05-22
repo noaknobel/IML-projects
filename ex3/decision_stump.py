@@ -105,10 +105,8 @@ class DecisionStump(BaseEstimator):
         For every tested threshold, values strictly below threshold are predicted as `-sign` whereas values
         which equal to or above the threshold are predicted as `sign`
         """
-        # sort values and corresponding labels
         sort_idx = np.argsort(values)
         sorted_vals = values[sort_idx]
-        # sorted_labels = labels[sort_idx]
 
         # candidate thresholds: midpoints between consecutive unique values,
         # plus one below the minimum
@@ -123,7 +121,6 @@ class DecisionStump(BaseEstimator):
                 best_thr, best_err = thr, err
 
         return best_thr, best_err
-
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

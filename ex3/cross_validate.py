@@ -40,7 +40,6 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray, cv: i
     for i in range(cv):
         val_idx = folds[i]
         train_idx = np.hstack([folds[j] for j in range(cv) if j != i])
-
         X_train, y_train = X[train_idx], y[train_idx]
         X_val, y_val = X[val_idx], y[val_idx]
 
@@ -51,9 +50,7 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray, cv: i
         # compute losses
         train_loss = model.loss(X_train, y_train)
         val_loss = model.loss(X_val, y_val)
-
         train_scores.append(train_loss)
         val_scores.append(val_loss)
 
-    # return average losses
     return float(np.mean(train_scores)), float(np.mean(val_scores))

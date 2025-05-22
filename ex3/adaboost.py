@@ -60,28 +60,17 @@ class AdaBoost(BaseEstimator):
         self.D_.append(D.copy())
 
         for t in range(self.iterations_):
-            # draw a bootstrap sample of indices according to D
             idxs = np.random.choice(n_samples, size=n_samples, replace=True, p=D)
             X_t, y_t = X[idxs], y[idxs]
-
-            # 1) train weak learner on weighted data
             stump = self.wl_()
             stump.fit(X_t, y_t)
             y_pred_t = stump.predict(X_t)
-
-            # 2) compute weighted error
             err = misclassification_error(y_t, y_pred_t, normalize=True)
             err = np.clip(err, 1e-10, 1 - 1e-10)
-
-            # 3) compute model weight
             w_t = 0.5 * np.log((1 - err) / err)
-
-            # 4) update D for next iteration
             y_pred_full = stump.predict(X)
             D = D * np.exp(-w_t * y * y_pred_full)
             D /= D.sum()
-
-            # 5) store results
             self.models_.append(stump)
             self.weights_.append(w_t)
             self.D_.append(D.copy())
