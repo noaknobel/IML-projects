@@ -27,8 +27,8 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
 
     # Question 2 - Perform Cross Validation for different values of the regularization parameter for Ridge and
     # Lasso regressions
-    ridge_grid = np.linspace(1e-5, 5e-2, 500)
-    lasso_grid = np.linspace(1e-2, 2.0, 500)
+    ridge_grid = np.linspace(1e-5, 5e-2, n_evaluations)
+    lasso_grid = np.linspace(1e-2, 2.0, n_evaluations)
 
     ridge_train, ridge_val = [], []
     lasso_train, lasso_val = [], []
@@ -45,7 +45,31 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
         lasso_train.append(tr)
         lasso_val.append(va)
 
-    # 4) Plot Ridge on a linear x-axis
+    plot_cross_valdition(lasso_grid, lasso_train, lasso_val, ridge_grid, ridge_train, ridge_val)
+
+    # Question 3 - Compare best Ridge model, best Lasso model and Least Squares model
+    # Find the best λ’s
+    best_lam = ridge_grid[np.argmin(ridge_val)]
+    best_alpha = lasso_grid[np.argmin(lasso_val)]
+    print(f"Best Ridge λ = {best_lam:.4g}")
+    print(f"Best Lasso λ = {best_alpha:.4g}")
+
+    # Retrain on the full 50‐sample train set
+    best_ridge = RidgeRegression(lam=best_lam, include_intercept=True)
+    best_ridge.fit(X_train, y_train)
+
+    best_lasso = Lasso(alpha=best_alpha, include_intercept=True)
+    best_lasso.fit(X_train, y_train)
+
+    plain_ls = LinearRegression()
+    plain_ls.fit(X_train, y_train)
+
+    print(f"Test MSE Ridge = {best_ridge.loss(X_test, y_test):.3f}")
+    print(f"Test MSE Lasso = {best_lasso.loss(X_test, y_test):.3f}")
+    print(f"Test MSE Least-Squares = {plain_ls.loss(X_test, y_test):.3f}")
+
+
+def plot_cross_valdition(lasso_grid, lasso_train, lasso_val, ridge_grid, ridge_train, ridge_val):
     fig_r = go.Figure()
     fig_r.add_trace(go.Scatter(x=ridge_grid, y=ridge_train, mode='lines', name='Train'))
     fig_r.add_trace(go.Scatter(x=ridge_grid, y=ridge_val, mode='lines', name='Validation'))
@@ -59,8 +83,6 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
         'cv_ridge_linear.html',
         include_plotlyjs='cdn', full_html=True
     )
-
-    # 5) Plot Lasso on a linear x-axis
     fig_l = go.Figure()
     fig_l.add_trace(go.Scatter(x=lasso_grid, y=lasso_train, mode='lines', name='Train'))
     fig_l.add_trace(go.Scatter(x=lasso_grid, y=lasso_val, mode='lines', name='Validation'))
@@ -74,14 +96,6 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
         'cv_lasso_linear.html',
         include_plotlyjs='cdn', full_html=True
     )
-
-    # Quick glance at best ranges
-    best_ridge = ridge_grid[np.argmin(ridge_val)]
-    best_lasso = lasso_grid[np.argmin(lasso_val)]
-    print(f"Ridge: best λ≈{best_ridge:.4g}; Lasso: best α≈{best_lasso:.4g}")
-
-    # Question 3 - Compare best Ridge model, best Lasso model and Least Squares model
-    # raise NotImplementedError()
 
 
 if __name__ == '__main__':

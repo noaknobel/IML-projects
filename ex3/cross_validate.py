@@ -31,8 +31,8 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray, cv: i
         Average validation score over folds
     """
     n_samples = X.shape[0]
-    indices = np.arange(n_samples)
-    folds = np.array_split(indices, cv)
+    ids = np.random.permutation(n_samples)
+    folds = np.array_split(ids, cv)
 
     train_scores = []
     val_scores = []
