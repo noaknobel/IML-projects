@@ -3,11 +3,9 @@ import pandas as pd
 from typing import Tuple, List, Callable, Type
 
 from base_module import BaseModule
-from base_learning_rate import  BaseLR
+from base_learning_rate import BaseLR
 from gradient_descent import GradientDescent
 from learning_rate import FixedLR
-
-
 
 # from IMLearn.desent_methods import GradientDescent, FixedLR, ExponentialLR
 from modules import L1, L2
@@ -52,14 +50,18 @@ def plot_descent_path(module: Type[BaseModule],
     fig = plot_descent_path(IMLearn.desent_methods.modules.L1, np.ndarray([[1,1],[0,0]]))
     fig.show()
     """
+
     def predict_(w):
         return np.array([module(weights=wi).compute_output() for wi in w])
 
     from utils import decision_surface
     return go.Figure([decision_surface(predict_, xrange=xrange, yrange=yrange, density=70, showscale=False),
-                      go.Scatter(x=descent_path[:, 0], y=descent_path[:, 1], mode="markers+lines", marker_color="black")],
-                     layout=go.Layout(xaxis=dict(range=xrange),
+                      go.Scatter(x=descent_path[:, 0], y=descent_path[:, 1], mode="markers+lines",
+                                 marker_color="black")],
+                     layout=go.Layout(xaxis=dict(range=xrange, scaleanchor="y", scaleratio=1),
                                       yaxis=dict(range=yrange),
+                                      height=600,
+                                      width=600,
                                       title=f"GD Descent Path {title}"))
 
 
@@ -79,14 +81,39 @@ def get_gd_state_recorder_callback() -> Tuple[Callable[[], None], List[np.ndarra
     weights: List[np.ndarray]
         Recorded parameters
     """
-    raise NotImplementedError()
+    values, weights = [], []
+
+    def callback(val, weight, **kwargs):
+        values.append(val)
+        weights.append(weight)
+
+    return callback, values, weights
 
 
 def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                  etas: Tuple[float] = (1, .1, .01, .001)):
-    raise NotImplementedError()
+    for name, Module in {"L1": L1, "L2": L2}.items():
+        values_per_eta = {}
+        for eta in etas:
+            module = Module(np.copy(init))
+            lr = FixedLR(eta)
+            callback, values, weights = get_gd_state_recorder_callback()
 
+            gd = GradientDescent(learning_rate=lr, callback=callback)
+            gd.fit(module, None, None)  # X, y are unused in L1/L2
 
+            descent_path = np.stack(weights)
+            values_per_eta[eta] = values
+            fig = plot_descent_path(Module, descent_path, title=f"{name}, η={eta}")
+            fig.write_html(f"{name}_eta_{eta}.html")
+
+            fig = go.Figure(layout=go.Layout(xaxis=dict(title="GD Iteration"),
+                                             yaxis=dict(title="Norm"),
+
+                                             title=f"{name} GD Convergence For Different Learning Rates"))
+            for eta, val in values_per_eta.items():
+                fig.add_trace(go.Scatter(x=list(range(len(val))), y=val, mode="lines", name=f"η={eta}"))
+            fig.write_html(f"gd_{name}_fixed_rate_convergence.html")
 
 
 def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
@@ -136,4 +163,4 @@ def fit_logistic_regression():
 if __name__ == '__main__':
     np.random.seed(0)
     compare_fixed_learning_rates()
-    fit_logistic_regression()
+    # fit_logistic_regression()

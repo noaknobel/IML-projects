@@ -33,7 +33,7 @@ class FixedLR(BaseLR):
         -----
         No arguments are expected
         """
-        raise NotImplementedError()
+        return self.base_lr
 
 
 class ExponentialLR(FixedLR):

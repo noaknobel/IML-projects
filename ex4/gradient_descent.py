@@ -3,7 +3,7 @@ from typing import Callable, NoReturn
 import numpy as np
 
 from base_module import BaseModule
-from base_learning_rate import  BaseLR
+from base_learning_rate import BaseLR
 from learning_rate import FixedLR
 
 OUTPUT_VECTOR_TYPE = ["last", "best", "average"]
@@ -40,6 +40,7 @@ class GradientDescent:
         Callable function receives as input any argument relevant for the current GD iteration. Arguments
         are specified in the `GradientDescent.fit` function
     """
+
     def __init__(self,
                  learning_rate: BaseLR = FixedLR(1e-3),
                  tol: float = 1e-5,
@@ -120,4 +121,37 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        raise NotImplementedError()
+        t = 0
+        w = f.weights.copy()
+        best_w = w.copy()
+        best_val = f.compute_output(X=X, y=y)
+        avg_w = np.zeros_like(w)
+        prev_w = w.copy()
+        converged = False
+
+        while t < self.max_iter_ and not converged:
+            val = f.compute_output(X=X, y=y)
+            grad = f.compute_jacobian(X=X, y=y)
+            eta = self.learning_rate_.lr_step(f=f, x=X, dx=-grad, t=t)
+            w = w - eta * grad
+            f.weights = w
+
+            delta = np.linalg.norm(w - prev_w)
+            prev_w = w.copy()
+
+            if val < best_val:
+                best_val = val
+                best_w = w.copy()
+
+            avg_w += w
+            self.callback_(solver=self, weight=np.copy(f.weights), val=val, grad=grad, t=t, eta=eta, delta=delta)
+
+            if delta < self.tol_:
+                converged = True
+            t += 1
+
+        if self.out_type_ == "last":
+            return w
+        if self.out_type_ == "best":
+            return best_w
+        return avg_w / t
