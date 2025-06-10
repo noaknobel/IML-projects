@@ -2,10 +2,14 @@ import numpy as np
 import pandas as pd
 from typing import Tuple, List, Callable, Type
 
+from matplotlib import pyplot as plt
+from sklearn.metrics import auc, roc_curve
+
 from base_module import BaseModule
 from base_learning_rate import BaseLR
 from gradient_descent import GradientDescent
 from learning_rate import FixedLR
+from cross_validate import cross_validate
 
 # from IMLearn.desent_methods import GradientDescent, FixedLR, ExponentialLR
 from modules import L1, L2
@@ -94,6 +98,8 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
                                  etas: Tuple[float] = (1, .1, .01, .001)):
     for name, Module in {"L1": L1, "L2": L2}.items():
         values_per_eta = {}
+        best_eta = None
+        best_loss = float('inf')
         for eta in etas:
             module = Module(np.copy(init))
             lr = FixedLR(eta)
@@ -101,6 +107,12 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
 
             gd = GradientDescent(learning_rate=lr, callback=callback)
             gd.fit(module, None, None)  # X, y are unused in L1/L2
+
+            min_loss = min(values)
+            min_loss = min(values)
+            if min_loss < best_loss:
+                best_loss = min_loss
+                best_eta = eta
 
             descent_path = np.stack(weights)
             values_per_eta[eta] = values
@@ -114,6 +126,8 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
             for eta, val in values_per_eta.items():
                 fig.add_trace(go.Scatter(x=list(range(len(val))), y=val, mode="lines", name=f"η={eta}"))
             fig.write_html(f"gd_{name}_fixed_rate_convergence.html")
+
+        print(f"Lowest loss for {name}: {best_loss} (eta={best_eta})")
 
 
 def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
@@ -152,15 +166,87 @@ def fit_logistic_regression():
     # Load and split SA Heard Disease dataset
     X_train, y_train, X_test, y_test = load_data()
 
-    # Plotting convergence rate of logistic regression over SA heart disease data
-    raise NotImplementedError()
+    #Fit logistic regression
+    from logistic_regression import LogisticRegression
+    model = LogisticRegression(penalty="none", include_intercept=True)
+    model.fit(X_train.to_numpy(), y_train.to_numpy())
 
-    # Fitting l1- and l2-regularized logistic regression models, using cross-validation to specify values
-    # of regularization parameter
-    raise NotImplementedError()
+    # Predict probabilities
+    y_score = model.predict_proba(X_train.to_numpy())
 
+    # Compute ROC curve and AUC
+    fpr, tpr, thresholds = roc_curve(y_train, y_score)
+    roc_auc = auc(fpr, tpr)
+
+    # Plot and save ROC curve
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='gray', linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve - Logistic Regression (no regularization)')
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig("logistic_roc.png")
+    plt.close()
+
+    model.alpha_ = thresholds[np.argmax(tpr - fpr)]
+    print(f"Optimal alpha: {model.alpha_ :}")
+    print(f"Test error with alpha = {model.loss(X_test.values, y_test.values):}")
+
+    # Fitting regularized logistic regression, while choosing lambda using cross-validaiton
+    lambdas = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+    best_lambda = None
+    lowest_val_error = float('inf')
+
+    def zero_one_loss(y_true, y_pred):
+        return np.mean(y_true != y_pred)
+
+    for lam in lambdas:
+        model = LogisticRegression(
+            penalty="l1",
+            lam=lam,
+            alpha=0.5,
+            include_intercept=True,
+            solver=GradientDescent(
+                learning_rate=FixedLR(1e-4),
+                max_iter=20000,
+                out_type="last"
+            )
+        )
+        train_err, val_err = cross_validate(
+            estimator=model,
+            X=X_train.to_numpy(),
+            y=y_train.to_numpy(),
+            scoring=zero_one_loss,
+            cv=5
+        )
+
+        if val_err < lowest_val_error:
+            lowest_val_error = val_err
+            best_lambda = lam
+
+    print(f"Best lambda from CV: {best_lambda:.3f}")
+
+    # Retrain on entire train set using best lambda
+    best_model = LogisticRegression(
+        penalty="l1",
+        lam=best_lambda,
+        alpha=0.5,
+        include_intercept=True,
+        solver=GradientDescent(
+            learning_rate=FixedLR(1e-4),
+            max_iter=20000,
+            out_type="last"
+        )
+    )
+    best_model.fit(X_train.to_numpy(), y_train.to_numpy())
+    test_error = best_model.loss(X_test.to_numpy(), y_test.to_numpy())
+    print(f"Test error with best lambda = {best_lambda:}: {test_error:}")
 
 if __name__ == '__main__':
     np.random.seed(0)
     compare_fixed_learning_rates()
-    # fit_logistic_regression()
+    fit_logistic_regression()
